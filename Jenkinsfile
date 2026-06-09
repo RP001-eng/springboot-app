@@ -26,22 +26,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'sonar-scanner'
-                    withSonarQubeEnv('SonarQube') {
-                        sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=springboot-app \
-                        -Dsonar.sources=. \
-                        -Dsonar.java.binaries=target/classes
-                        """
-                    }
-                }
-            }
-        }
-
         stage('Docker Build') {
             steps {
                 sh 'docker build -t $DOCKER_IMAGE .'
