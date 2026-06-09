@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = 'rp001/springboot-app:v1'
+        DOCKER_IMAGE = "rp001/springboot-app:${BUILD_NUMBER}"
     }
 
     stages {
@@ -62,6 +62,37 @@ pipeline {
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                     docker push $DOCKER_IMAGE
+                    '''
+                }
+            }
+        }
+
+        stage('Update GitOps Repo') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'gitops-creds',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_PASS'
+                    )
+                ]) {
+                    sh '''
+                    rm -rf springboot-gitops
+
+                    git clone https://${GIT_USER}:${GIT_PASS}@github.com/RP001-eng/springboot-gitops.git
+
+                    cd springboot-gitops
+
+                    sed -i "s|image: .*|image: rp001/springboot-app:${BUILD_NUMBER}|g" deployment.yaml
+
+                    git config user.email "jenkins@local.com"
+                    git config user.name "Jenkins"
+
+                    git add deployment.yaml
+
+                    git commit -m "Updated image to build ${BUILD_NUMBER}" || true
+
+                    git push origin main
                     '''
                 }
             }
